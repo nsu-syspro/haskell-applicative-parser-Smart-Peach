@@ -2,6 +2,7 @@
 -- The above pragma enables all warnings
 
 {-# OPTIONS_GHC -Wno-unused-top-binds #-}
+{-# LANGUAGE LambdaCase #-}
 -- The above pragma temporarily disables warnings about Parser constructor and runParser not being used
 
 module Parser
@@ -85,7 +86,6 @@ instance Applicative Parser where
   pure value = Parser(Parsed value)
   (<*>) = ap -- is it considered cheating?
 
-
 instance Alternative Parser where
   empty = Parser (const (Failed []))
   -- Note: when both parsers fail, their errors are accumulated and *deduplicated* to simplify debugging
@@ -105,10 +105,9 @@ instance Alternative Parser where
 -- Failed [Position 0 EndOfInput]
 --
 satisfy :: (Char -> Bool) -> Parser Char
-satisfy predicate = Parser $ \input ->
-  case input of
-  Position pos (c : rest) | predicate c -> Parsed c (Position (pos + 1) rest)
+satisfy predicate = Parser $ \case
+  Position pos (c : rest)
+    | predicate c -> Parsed c (Position (pos + 1) rest)
   Position pos (c : _) -> Failed [Position pos (Unexpected c)]
   Position pos [] -> Failed [Position pos EndOfInput]
-
                                     

@@ -4,6 +4,9 @@
 module Task2 where
 
 import Parser
+import ParserCombinators (choice, char, string)
+import Task1
+import Control.Applicative (Alternative(..))
 
 -- | Date representation
 --
@@ -59,4 +62,58 @@ newtype Year  = Year  Int deriving (Show, Eq)
 -- Failed [PosError 2 (Unexpected '/'),PosError 0 (Unexpected '1')]
 --
 date :: Parser Date
-date = error "TODO: define date"
+date = choice [dateUSFormat, dateDotFormat, dateHyphenFormat]
+
+dateUSFormat :: Parser Date
+dateUSFormat = do
+                m <- monthString <* char ' '
+                d <- day <* char ' '
+                Date d m <$> year
+
+dateDotFormat :: Parser  Date
+dateDotFormat = dateCharFormat '.'
+
+dateHyphenFormat :: Parser Date
+dateHyphenFormat = dateCharFormat '-'
+
+dateCharFormat :: Char -> Parser Date
+dateCharFormat ch = Date <$> 
+                        (day <* char ch) <*> 
+                        (month <* char ch )<*> 
+                        year
+
+day :: Parser Day
+day = nat >>= (\num -> if num > 0 && num <= 31 then return (Day num) else empty) . fromIntegral
+
+dayUS :: Parser Day
+dayUS = error "Implement"
+
+month :: Parser Month
+month = nat >>= (\num -> if num > 0 && num <= 12 then return (Month num) else empty) . fromIntegral
+
+monthUS :: Parser Month
+monthUS = error "Implement"
+
+year :: Parser Year
+year = Year <$> fmap fromIntegral nat
+
+monthToNum :: String -> Int
+monthToNum s = case s of
+  "Jan" -> 1
+  "Feb" -> 2
+  "Mar" -> 3
+  "Apr" -> 4
+  "May" -> 5
+  "Jun" -> 6
+  "Jul" -> 7
+  "Aug" -> 8
+  "Sep" -> 9
+  "Oct" -> 10
+  "Nov" -> 11
+  "Dec" -> 12
+  _     -> error "Invalid value for a Month value"
+
+monthString :: Parser Month
+monthString =  Month . monthToNum <$> choice (map string months)
+  where
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
