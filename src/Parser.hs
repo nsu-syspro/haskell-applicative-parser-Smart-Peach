@@ -57,12 +57,14 @@ parseMaybe p s = case parse p s of
                     _          -> Nothing
 
 instance Functor Parsed where
-  fmap f (Parsed a input) = Parsed (f a) input
-  fmap _ (Failed err) = Failed err
+  -- fmap f (Parsed a input) = Parsed (f a) input
+  -- fmap _ (Failed err) = Failed err
+  fmap f p = f <$> p
 
 instance Applicative Parsed where -- Seem stupid
   pure i = Parsed i undefined
-  (<*>) (Parsed f s1) (Parsed a _) = Parsed (f a) s1 -- seems wrong
+
+  (<*>) (Parsed f _) (Parsed a s) = Parsed (f a) s -- seems wrong
   (<*>) _ (Failed err) = Failed err 
   (<*>) (Failed err) _ = Failed err 
 
@@ -74,7 +76,8 @@ instance Alternative Parsed where
 
 instance Functor Parser where
   -- fmap f (Parser p) = Parser $ fmap f . p
-  fmap f p = pure f <*> p
+  -- fmap f p = pure f <*> p
+  fmap f p = f <$> p
 
 instance Monad Parser where 
   (Parser p) >>= f = Parser $ \input -> 

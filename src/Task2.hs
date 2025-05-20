@@ -85,14 +85,14 @@ dateCharFormat ch = Date <$>
 day :: Parser Day
 day = nat >>= (\num -> if num > 0 && num <= 31 then return (Day num) else empty) . fromIntegral
 
-dayUS :: Parser Day
-dayUS = error "Implement"
+-- dayUS :: Parser Day
+-- dayUS = error "Implement"
 
 month :: Parser Month
 month = nat >>= (\num -> if num > 0 && num <= 12 then return (Month num) else empty) . fromIntegral
 
-monthUS :: Parser Month
-monthUS = error "Implement"
+-- monthUS :: Parser Month
+-- monthUS = error "Implement"
 
 year :: Parser Year
 year = Year <$> fmap fromIntegral nat

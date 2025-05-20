@@ -23,8 +23,14 @@ import Control.Applicative (Alternative(some, (<|>)))
 -- >>> parse nat "123abc"
 -- Parsed 123 (Input 3 "abc")
 --
+-- nat :: Parser Integer
+-- nat = read <$> some (satisfy isDigit) 
+
 nat :: Parser Integer
-nat = read <$> some (satisfy isDigit) 
+nat = read <$> some digit
+
+digit :: Parser Char
+digit = satisfy isDigit
 
 -- | Parses integer number
 --
