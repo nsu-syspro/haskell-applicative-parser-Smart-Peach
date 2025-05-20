@@ -76,8 +76,7 @@ instance Alternative Parsed where
 
 instance Functor Parser where
   -- fmap f (Parser p) = Parser $ fmap f . p
-  -- fmap f p = pure f <*> p
-  fmap f p = f <$> p
+  fmap f p = pure f <*> p
 
 instance Monad Parser where 
   (Parser p) >>= f = Parser $ \input -> 
