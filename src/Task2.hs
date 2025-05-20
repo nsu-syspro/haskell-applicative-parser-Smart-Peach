@@ -6,7 +6,6 @@ module Task2 where
 import Parser
 import ParserCombinators (choice, char, string)
 import Task1
-import Control.Applicative (Alternative(..))
 
 -- | Date representation
 --
@@ -66,8 +65,8 @@ date = choice [dateUSFormat, dateDotFormat, dateHyphenFormat]
 
 dateUSFormat :: Parser Date
 dateUSFormat = do
-                m <- monthString <* char ' '
-                d <- day <* char ' '
+                m <- monthUS <* char ' '
+                d <- dayUS <* char ' '
                 Date d m <$> year
 
 dateDotFormat :: Parser  Date
@@ -82,17 +81,28 @@ dateCharFormat ch = Date <$>
                         (month <* char ch )<*> 
                         year
 
-day :: Parser Day
-day = nat >>= (\num -> if num > 0 && num <= 31 then return (Day num) else empty) . fromIntegral
+-- day :: Parser Day
+-- day = nat >>= (\num -> if num > 0 && num <= 31 then return (Day num) else empty) . fromIntegral
 
--- dayUS :: Parser Day
--- dayUS = error "Implement"
+day :: Parser Day
+day = Day . read <$> choice (map string days)
+  where
+    days = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "26", "27", "28", "29", "30", "31"]
+
+dayUS :: Parser Day
+dayUS = Day . read <$> choice (map string days)
+  where
+    days = ["10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "26", "27", "28", "29", "30", "31", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
 month :: Parser Month
-month = nat >>= (\num -> if num > 0 && num <= 12 then return (Month num) else empty) . fromIntegral
+month = Month . read <$> choice (map string days)
+  where
+    days = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]
 
--- monthUS :: Parser Month
--- monthUS = error "Implement"
+monthUS :: Parser Month
+monthUS =  Month . monthToNum <$> choice (map string months)
+  where
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 year :: Parser Year
 year = Year <$> fmap fromIntegral nat
@@ -112,8 +122,3 @@ monthToNum s = case s of
   "Nov" -> 11
   "Dec" -> 12
   _     -> error "Invalid value for a Month value"
-
-monthString :: Parser Month
-monthString =  Month . monthToNum <$> choice (map string months)
-  where
-    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
