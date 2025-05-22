@@ -6,6 +6,9 @@ module ParserCombinators where
 import Parser
 
 import Control.Applicative
+import Data.Functor (void)
+import Data.Char (isDigit)
+import GHC.Unicode (isHexDigit)
 
 -- | Parses single character
 --
@@ -17,7 +20,7 @@ import Control.Applicative
 -- Failed [Position 0 (Unexpected 'a')]
 --
 char :: Char -> Parser Char
-char = error "TODO: define char"
+char ch = satisfy (== ch)
 
 -- | Parses given string
 --
@@ -29,7 +32,8 @@ char = error "TODO: define char"
 -- Failed [Position 0 (Unexpected 'a')]
 --
 string :: String -> Parser String
-string = error "TODO: define string"
+string = traverse char
+
 
 -- | Skips zero or more space characters
 --
@@ -43,7 +47,25 @@ string = error "TODO: define string"
 -- Parsed "bar" (Position 3 "")
 --
 spaces :: Parser ()
-spaces = error "TODO: define spaces"
+spaces = void $ many $ char ' '
+
+ws :: Parser ()
+ws = void $ many $ choice (fmap char " \n\r\t")
+
+sepBy :: Parser a -> Parser sep -> Parser [a]
+sepBy p sep = fmap (:) p <*> many (sep *> p) <|> return []
+
+sign :: Parser String
+sign = option "" $ string "-" <|> string "+"
+
+digit :: Parser Char
+digit = satisfy isDigit
+
+onenine :: Parser Char
+onenine = satisfy (\c -> isDigit c && c /= '0')
+
+hex :: Parser Char
+hex = satisfy isHexDigit
 
 -- | Tries to consecutively apply each of given list of parsers until one succeeds.
 -- Returns the *first* succeeding parser as result or 'empty' if all of them failed.
@@ -58,7 +80,7 @@ spaces = error "TODO: define spaces"
 -- Parsed "ba" (Position 2 "r")
 --
 choice :: (Foldable t, Alternative f) => t (f a) -> f a
-choice = error "TODO: define choice"
+choice = asum
 
 -- Discover and implement more useful parser combinators below
 --
