@@ -7,6 +7,8 @@ import Parser
 
 import Control.Applicative
 import Data.Functor (void)
+import Data.Char (isDigit)
+import GHC.Unicode (isHexDigit)
 
 -- | Parses single character
 --
@@ -52,6 +54,18 @@ ws = void $ many $ choice (fmap char " \n\r\t")
 
 sepBy :: Parser a -> Parser sep -> Parser [a]
 sepBy p sep = fmap (:) p <*> many (sep *> p) <|> return []
+
+sign :: Parser String
+sign = option "" $ string "-" <|> string "+"
+
+digit :: Parser Char
+digit = satisfy isDigit
+
+onenine :: Parser Char
+onenine = satisfy (\c -> isDigit c && c /= '0')
+
+hex :: Parser Char
+hex = satisfy isHexDigit
 
 -- | Tries to consecutively apply each of given list of parsers until one succeeds.
 -- Returns the *first* succeeding parser as result or 'empty' if all of them failed.

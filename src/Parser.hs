@@ -62,10 +62,10 @@ instance Functor Parsed where
   -- fmap _ (Failed err) = Failed err
   fmap f p = f <$> p
 
-instance Applicative Parsed where -- Seem stupid
+instance Applicative Parsed where
   pure i = Parsed i undefined
 
-  (<*>) (Parsed f _) (Parsed a s) = Parsed (f a) s -- seems wrong
+  (<*>) (Parsed f _) (Parsed a s) = Parsed (f a) s
   (<*>) _ (Failed err) = Failed err 
   (<*>) (Failed err) _ = Failed err 
 

@@ -5,16 +5,14 @@
 module Task3 where
 
 import Parser
-import Data.Char (toLower, digitToInt, isDigit)
+import Data.Char (toLower)
 import Data.List (intercalate)
 
-import ParserCombinators(char, string, choice, sepBy, ws)
+import ParserCombinators(char, string, choice, sepBy, ws, sign, onenine, digit, hex)
 import Data.Functor (($>))
 
 import Control.Applicative ((<|>), Alternative (many))
 import Prelude hiding (exp, exponent)
-import GHC.Char (chr)
-import GHC.Unicode (isHexDigit)
 -- | JSON representation
 --
 -- See <https://www.json.org>
@@ -51,24 +49,24 @@ json = choice [jObject, jNumber, jBool, jNull, jArray, jString]
 
 jObject :: Parser JValue
 jObject = do
-          _ <- ws *> char '{' *> ws
+          _     <- ws *> char '{' *> ws
           pairs <- sepBy pair (char ',' *> ws)
-          _ <- ws <* char '}'
-          return (JObject pairs)
+          _     <- ws <* char '}'
+          return $ JObject pairs
 
 jArray :: Parser JValue
 jArray = do
-          _ <- ws *> char '[' *> ws
+          _      <- ws *> char '[' *> ws
           values <- sepBy json (ws *> char ',' <* ws)
-          _ <- ws <* char ']' <* ws
-          return (JArray values)
+          _      <- ws <* char ']'
+          return $ JArray values
 
 jNumber :: Parser JValue
 jNumber = do
-            int <- integer
+            int   <- integer
             fract <- fraction
-            exp <- exponent
-            return (JNumber $ read (int ++ fract ++ exp))
+            exp   <- exponent
+            return . JNumber $ read $ int ++ fract ++ exp
 
 jString :: Parser JValue
 jString = JString <$> ordString
@@ -87,35 +85,22 @@ pair = do
 
 integer :: Parser String
 integer = do
-            s <- option "" $ string "-"
+            s      <- option "" $ string "-"
             digits <- ((++) . (:[]) <$> onenine) <*> many digit <|> (:[]) <$> digit
             return (s ++ digits)
 
 fraction :: Parser String
-fraction = option "" $ ((++) . (:[]) <$> char '.') <*> many digit
+fraction = option "" $ ((++) <$> string ".") <*> many digit
 
 exponent :: Parser String
 exponent = option "" $ do
-                        e <- char 'e' <|> char 'E'
-                        s <- sign
+                        e      <- char 'e' <|> char 'E'
+                        s      <- sign
                         digits <- many digit
                         return (e : s ++ digits)
 
-sign :: Parser String
-sign = option "" $ string "-" <|> string "+"
-
-digit :: Parser Char
-digit = satisfy isDigit
-
-onenine :: Parser Char
-onenine = satisfy (\c -> isDigit c && c /= '0')
-
 ordString :: Parser String
-ordString = do
-    _ <- char '"'
-    chars <- concat <$> many characters
-    _ <- char '"'
-    return chars
+ordString = char '"' *> (concat <$> many characters) <* char '"'
 
 characters :: Parser String
 characters = ordinaryChar <|> escape
@@ -124,32 +109,15 @@ ordinaryChar :: Parser String
 ordinaryChar = (:[]) <$> satisfy (\c -> c /= '"' && c /= '\\')
 
 escape :: Parser String
-escape =  char '\\' >> choice
-  [ string "\"" >> return "\\\""
-  , string "\\" >> return "\\\\"
-  , string "/"  >> return "\\/"
-  , string "b"  >> return "\\b"
-  , string "f"  >> return "\\f"
-  , string "n"  >> return "\\n"
-  , string "r"  >> return "\\r"
-  , string "t"  >> return "\\t"
-  , string "u"  >> unicode
-  ]
+escape = char '\\' *> choice (fmap (\c -> string c $> ("\\" ++ c)) ["\"", "\\", "/", "b", "f", "n", "r", "t"]) <|> (string "\\u" >> unicode)
 
 unicode :: Parser String
 unicode = do
-  d1 <- hex
-  d2 <- hex
-  d3 <- hex
-  d4 <- hex
-  let code = d1 * 4096 + d2 * 256 + d3 * 16 + d4
-  return [chr code]
-
-hex :: Parser Int
-hex = do
-  c <- satisfy isHexDigit
-  case digitToInt c of
-    n -> return n
+          d1 <- hex
+          d2 <- hex
+          d3 <- hex
+          d4 <- hex
+          return $ d1 : d2 : d3 : [d4]
 
 -- * Rendering helpers
 
