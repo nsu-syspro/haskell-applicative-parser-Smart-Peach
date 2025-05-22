@@ -81,9 +81,6 @@ dateCharFormat ch = Date <$>
                         (month <* char ch )<*> 
                         year
 
--- day :: Parser Day
--- day = nat >>= (\num -> if num > 0 && num <= 31 then return (Day num) else empty) . fromIntegral
-
 day :: Parser Day
 day = Day . read <$> choice (map string days)
   where

@@ -15,6 +15,7 @@ module Parser
   , parse
   , parseMaybe
   , satisfy
+  , option
   , Error(..)
   , Position(..)
   , Parsed(..)
@@ -113,3 +114,5 @@ satisfy predicate = Parser $ \case
   Position pos (c : _) -> Failed [Position pos (Unexpected c)]
   Position pos [] -> Failed [Position pos EndOfInput]
                                     
+option :: a -> Parser a -> Parser a
+option val p = p <|> return val
