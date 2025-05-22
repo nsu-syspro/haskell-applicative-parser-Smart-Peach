@@ -47,6 +47,12 @@ string = traverse char
 spaces :: Parser ()
 spaces = void $ many $ char ' '
 
+ws :: Parser ()
+ws = void $ many $ choice (fmap char " \n\r\t")
+
+sepBy :: Parser a -> Parser sep -> Parser [a]
+sepBy p sep = fmap (:) p <*> many (sep *> p) <|> return []
+
 -- | Tries to consecutively apply each of given list of parsers until one succeeds.
 -- Returns the *first* succeeding parser as result or 'empty' if all of them failed.
 --

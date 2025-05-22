@@ -8,15 +8,13 @@ import Parser
 import Data.Char (toLower, digitToInt, isDigit)
 import Data.List (intercalate)
 
--- import Parser(option)
-import ParserCombinators(char, string, choice)
+import ParserCombinators(char, string, choice, sepBy, ws)
 import Data.Functor (($>))
 
 import Control.Applicative ((<|>), Alternative (many))
 import Prelude hiding (exp, exponent)
 import GHC.Char (chr)
 import GHC.Unicode (isHexDigit)
-import Control.Monad (void)
 -- | JSON representation
 --
 -- See <https://www.json.org>
@@ -58,25 +56,12 @@ jObject = do
           _ <- ws <* char '}'
           return (JObject pairs)
 
-ws :: Parser ()
-ws = void $ many $ choice (fmap char " \n\r\t")
-
-pair :: Parser (String, JValue)
-pair = do
-        k <- ws *> key <* ws <* char ':' <* ws
-        v <- json <* ws
-        return (k, v)
-
-sepBy :: Parser a -> Parser sep -> Parser [a]
-sepBy p sep = fmap (:) p <*> many (sep *> p) <|> return []
-
 jArray :: Parser JValue
 jArray = do
           _ <- ws *> char '[' *> ws
           values <- sepBy json (ws *> char ',' <* ws)
           _ <- ws <* char ']' <* ws
           return (JArray values)
-
 
 jNumber :: Parser JValue
 jNumber = do
@@ -85,15 +70,20 @@ jNumber = do
             exp <- exponent
             return (JNumber $ read (int ++ fract ++ exp))
 
-exponent :: Parser String
-exponent = option "" $ do
-                        e <- char 'e' <|> char 'E'
-                        s <- sign
-                        digits <- many digit
-                        return (e : s ++ digits)
+jString :: Parser JValue
+jString = JString <$> ordString
 
-fraction :: Parser String
-fraction = option "" $ ((++) . (:[]) <$> char '.') <*> many digit
+jBool :: Parser JValue
+jBool = JBool <$> choice [string "true" $> True, string "false" $> False]
+
+jNull :: Parser JValue
+jNull = JNull <$ string "null"
+
+pair :: Parser (String, JValue)
+pair = do
+        k <- ws *> ordString <* ws <* char ':' <* ws
+        v <- json <* ws
+        return (k, v)
 
 integer :: Parser String
 integer = do
@@ -101,31 +91,24 @@ integer = do
             digits <- ((++) . (:[]) <$> onenine) <*> many digit <|> (:[]) <$> digit
             return (s ++ digits)
 
+fraction :: Parser String
+fraction = option "" $ ((++) . (:[]) <$> char '.') <*> many digit
+
+exponent :: Parser String
+exponent = option "" $ do
+                        e <- char 'e' <|> char 'E'
+                        s <- sign
+                        digits <- many digit
+                        return (e : s ++ digits)
+
+sign :: Parser String
+sign = option "" $ string "-" <|> string "+"
+
 digit :: Parser Char
 digit = satisfy isDigit
 
 onenine :: Parser Char
 onenine = satisfy (\c -> isDigit c && c /= '0')
-
--- double :: Parser JValue
--- double = do
---           s           <- sign
---           integer     <- nat <* char '.'
---           fractional  <- nat
---           exponential <- option 1.0 exponent
---           let denominator = 10.0 ** fromIntegral (numDig $ fromIntegral fractional)
---           let doubleValue = fromIntegral integer + fromIntegral fractional / denominator
---           return $ JNumber (s * doubleValue * exponential)
-
--- exponent :: Parser Double
--- exponent = do
---             _ <- char 'e' <|> char 'E'
---             s <- sign
---             num <- nat
---             return (10.0 ** (s * fromIntegral num))  
-
-jString :: Parser JValue
-jString = JString <$> ordString
 
 ordString :: Parser String
 ordString = do
@@ -136,6 +119,9 @@ ordString = do
 
 characters :: Parser String
 characters = ordinaryChar <|> escape
+
+ordinaryChar :: Parser String
+ordinaryChar = (:[]) <$> satisfy (\c -> c /= '"' && c /= '\\')
 
 escape :: Parser String
 escape =  char '\\' >> choice
@@ -164,25 +150,6 @@ hex = do
   c <- satisfy isHexDigit
   case digitToInt c of
     n -> return n
-
-ordinaryChar :: Parser String
-ordinaryChar = (:[]) <$> satisfy (\c -> c /= '"' && c /= '\\')
-
-sign :: Parser String
-sign = option "" $ string "-" <|> string "+"
-
-jBool :: Parser JValue
-jBool = JBool <$> choice [string "true" $> True, string "false" $> False]
-
-jNull :: Parser JValue
-jNull = JNull <$ string "null"
-
-numDig :: Integer -> Integer
-numDig n | n < 10 = 1
-         | otherwise = 1 + numDig (n `div` 10)
-
-key :: Parser String -- for JObject
-key = ordString
 
 -- * Rendering helpers
 
